@@ -1,0 +1,673 @@
+// Frontend HTML - Create public/index.html
+const frontendHTML = `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropTech AI - Immobilien Dokumente analysieren</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { backdrop-filter: blur(10px); background: rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="gradient-bg text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">PropTech AI</h1>
+                <div id="nav-buttons">
+                    <button id="login-btn" class="bg-white text-purple-600 px-4 py-2 rounded mr-2 hover:bg-gray-100">Login</button>
+                    <button id="register-btn" class="border border-white px-4 py-2 rounded hover:bg-white hover:text-purple-600">Registrieren</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Landing Page -->
+        <div id="landing-page" class="container mx-auto px-4 py-12">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">KI-gestützte Immobilien-Dokumentenanalyse</h2>
+                <p class="text-xl text-gray-600 mb-8">Extrahieren Sie automatisch wichtige Informationen aus Immobilien-PDFs in Sekunden</p>
+                <div class="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+                    <h3 class="text-2xl font-semibold mb-4">Kostenlos starten</h3>
+                    <p class="text-gray-600 mb-4">5 kostenlose Analysen bei Registrierung</p>
+                    <button id="start-free-btn" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90">Jetzt kostenlos testen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Forms -->
+        <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg max-w-md w-full mx-4">
+                <div id="login-form" class="hidden">
+                    <h3 class="text-2xl font-bold mb-6">Login</h3>
+                    <form id="login-form-element">
+                        <input type="email" id="login-email" placeholder="E-Mail" class="w-full p-3 border rounded mb-4" required>
+                        <input type="password" id="login-password" placeholder="Passwort" class="w-full p-3 border rounded mb-6" required>
+                        <button type="submit" class="w-full gradient-bg text-white py-3 rounded font-semibold">Einloggen</button>
+                    </form>
+                </div>
+                
+                <div id="register-form" class="hidden">
+                    <h3 class="text-2xl font-bold mb-6">Registrieren</h3>
+                    <form id="register-form-element">
+                        <input type="text" id="register-name" placeholder="Name" class="w-full p-3 border rounded mb-4" required>
+                        <input type="email" id="register-email" placeholder="E-Mail" class="w-full p-3 border rounded mb-4" required>
+                        <input type="password" id="register-password" placeholder="Passwort" class="w-full p-3 border rounded mb-6" required>
+                        <button type="submit" class="w-full gradient-bg text-white py-3 rounded font-semibold">Registrieren</button>
+                    </form>
+                </div>
+                
+                <button id="close-modal" class="mt-4 text-gray-500 hover:text-gray-700">Schließen</button>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden">
+            <div class="container mx-auto px-4 py-8">
+                <!-- User Info -->
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-semibold">Willkommen, <span id="user-name"></span>!</h3>
+                            <p class="text-gray-600">Verfügbare Credits: <span id="user-credits" class="font-bold text-green-600"></span></p>
+                        </div>
+                        <div>
+                            <button id="buy-credits-btn" class="bg-blue-600 text-white px-4 py-2 rounded mr-2 hover:bg-blue-700">Credits kaufen</button>
+                            <button id="logout-btn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-xl font-semibold mb-4">PDF Dokument analysieren</h3>
+                    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors">
+                        <input type="file" id="file-input" accept=".pdf" class="hidden">
+                        <div class="text-gray-600">
+                            <p class="text-lg mb-2">PDF hier ablegen oder klicken zum Auswählen</p>
+                            <p class="text-sm">Maximal 10MB pro Datei</p>
+                        </div>
+                    </div>
+                    <button id="analyze-btn" class="hidden mt-4 w-full gradient-bg text-white py-3 rounded font-semibold">Analysieren (1 Credit)</button>
+                </div>
+
+                <!-- Analysis Results -->
+                <div id="results-section" class="hidden bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Analyse-Ergebnis</h3>
+                    <div id="analysis-result" class="space-y-4"></div>
+                </div>
+
+                <!-- Document History -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-4">Dokument-Verlauf</h3>
+                    <div id="document-history" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credit Purchase Modal -->
+        <div id="credit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg max-w-md w-full mx-4">
+                <h3 class="text-2xl font-bold mb-6">Credits kaufen</h3>
+                <div class="space-y-4">
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 credit-option" data-credits="10" data-price="990">
+                        <div class="flex justify-between">
+                            <span class="font-semibold">10 Credits</span>
+                            <span class="text-green-600">€9.90</span>
+                        </div>
+                        <p class="text-sm text-gray-600">€0.99 pro Analyse</p>
+                    </div>
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 credit-option" data-credits="25" data-price="1990">
+                        <div class="flex justify-between">
+                            <span class="font-semibold">25 Credits</span>
+                            <span class="text-green-600">€19.90</span>
+                        </div>
+                        <p class="text-sm text-gray-600">€0.80 pro Analyse</p>
+                    </div>
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 credit-option" data-credits="50" data-price="3490">
+                        <div class="flex justify-between">
+                            <span class="font-semibold">50 Credits</span>
+                            <span class="text-green-600">€34.90</span>
+                        </div>
+                        <p class="text-sm text-gray-600">€0.70 pro Analyse - Beliebt!</p>
+                    </div>
+                </div>
+                <div id="payment-element" class="mt-6 hidden"></div>
+                <button id="pay-button" class="hidden mt-4 w-full gradient-bg text-white py-3 rounded font-semibold">Jetzt bezahlen</button>
+                <button id="close-credit-modal" class="mt-4 text-gray-500 hover:text-gray-700">Schließen</button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Analysiere Dokument...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PropTechApp {
+            constructor() {
+                this.token = localStorage.getItem('token');
+                this.user = null;
+                this.stripe = Stripe('${process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_...'}');
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                if (this.token) {
+                    this.loadProfile();
+                } else {
+                    this.showLanding();
+                }
+            }
+
+            setupEventListeners() {
+                // Auth buttons
+                document.getElementById('login-btn').addEventListener('click', () => this.showLogin());
+                document.getElementById('register-btn').addEventListener('click', () => this.showRegister());
+                document.getElementById('start-free-btn').addEventListener('click', () => this.showRegister());
+                document.getElementById('close-modal').addEventListener('click', () => this.hideAuthModal());
+                document.getElementById('logout-btn').addEventListener('click', () => this.logout());
+
+                // Auth forms
+                document.getElementById('login-form-element').addEventListener('submit', (e) => this.handleLogin(e));
+                document.getElementById('register-form-element').addEventListener('submit', (e) => this.handleRegister(e));
+
+                // File upload
+                document.getElementById('upload-area').addEventListener('click', () => document.getElementById('file-input').click());
+                document.getElementById('file-input').addEventListener('change', (e) => this.handleFileSelect(e));
+                document.getElementById('analyze-btn').addEventListener('click', () => this.analyzeDocument());
+
+                // Credits
+                document.getElementById('buy-credits-btn').addEventListener('click', () => this.showCreditModal());
+                document.getElementById('close-credit-modal').addEventListener('click', () => this.hideCreditModal());
+                document.querySelectorAll('.credit-option').forEach(option => {
+                    option.addEventListener('click', () => this.selectCreditOption(option));
+                });
+
+                // Drag & Drop
+                const uploadArea = document.getElementById('upload-area');
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('border-blue-400');
+                });
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('border-blue-400');
+                });
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('border-blue-400');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        document.getElementById('file-input').files = files;
+                        this.handleFileSelect({ target: { files } });
+                    }
+                });
+            }
+
+            showLanding() {
+                document.getElementById('landing-page').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+                document.getElementById('nav-buttons').innerHTML = `
+                    <button id="login-btn" class="bg-white text-purple-600 px-4 py-2 rounded mr-2 hover:bg-gray-100">Login</button>
+                    <button id="register-btn" class="border border-white px-4 py-2 rounded hover:bg-white hover:text-purple-600">Registrieren</button>
+                `;
+                this.setupEventListeners();
+            }
+
+            showDashboard() {
+                document.getElementById('landing-page').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('nav-buttons').innerHTML = `
+                    <span class="text-white">Willkommen, ${this.user.name}</span>
+                `;
+                this.loadDocumentHistory();
+            }
+
+            showLogin() {
+                document.getElementById('auth-modal').classList.remove('hidden');
+                document.getElementById('auth-modal').classList.add('flex');
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+            }
+
+            showRegister() {
+                document.getElementById('auth-modal').classList.remove('hidden');
+                document.getElementById('auth-modal').classList.add('flex');
+                document.getElementById('register-form').classList.remove('hidden');
+                document.getElementById('login-form').classList.add('hidden');
+            }
+
+            hideAuthModal() {
+                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('auth-modal').classList.remove('flex');
+            }
+
+            showCreditModal() {
+                document.getElementById('credit-modal').classList.remove('hidden');
+                document.getElementById('credit-modal').classList.add('flex');
+            }
+
+            hideCreditModal() {
+                document.getElementById('credit-modal').classList.add('hidden');
+                document.getElementById('credit-modal').classList.remove('flex');
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        localStorage.setItem('token', this.token);
+                        this.hideAuthModal();
+                        this.showDashboard();
+                        this.updateUserInfo();
+                    } else {
+                        this.showError(data.error);
+                    }
+                } catch (error) {
+                    this.showError('Login fehlgeschlagen');
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+
+                try {
+                    const response = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, password })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        localStorage.setItem('token', this.token);
+                        this.hideAuthModal();
+                        this.showDashboard();
+                        this.updateUserInfo();
+                        this.showSuccess(data.message);
+                    } else {
+                        this.showError(data.error);
+                    }
+                } catch (error) {
+                    this.showError('Registrierung fehlgeschlagen');
+                }
+            }
+
+            async loadProfile() {
+                try {
+                    const response = await fetch('/api/profile', {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.user = data.user;
+                        this.showDashboard();
+                        this.updateUserInfo();
+                    } else {
+                        this.logout();
+                    }
+                } catch (error) {
+                    this.logout();
+                }
+            }
+
+            updateUserInfo() {
+                document.getElementById('user-name').textContent = this.user.name;
+                document.getElementById('user-credits').textContent = this.user.credits;
+                
+                // Update credit color based on amount
+                const creditsElement = document.getElementById('user-credits');
+                if (this.user.credits < 3) {
+                    creditsElement.className = 'font-bold text-red-600';
+                } else if (this.user.credits < 10) {
+                    creditsElement.className = 'font-bold text-yellow-600';
+                } else {
+                    creditsElement.className = 'font-bold text-green-600';
+                }
+            }
+
+            logout() {
+                this.token = null;
+                this.user = null;
+                localStorage.removeItem('token');
+                this.showLanding();
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.type === 'application/pdf') {
+                        document.getElementById('analyze-btn').classList.remove('hidden');
+                        document.getElementById('upload-area').innerHTML = `
+                            <div class="text-green-600">
+                                <p class="text-lg mb-2">✓ ${file.name}</p>
+                                <p class="text-sm">Bereit zur Analyse</p>
+                            </div>
+                        `;
+                    } else {
+                        this.showError('Bitte wählen Sie eine PDF-Datei aus');
+                    }
+                }
+            }
+
+            async analyzeDocument() {
+                const fileInput = document.getElementById('file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    this.showError('Bitte wählen Sie eine Datei aus');
+                    return;
+                }
+
+                if (this.user.credits < 1) {
+                    this.showError('Nicht genügend Credits. Bitte kaufen Sie weitere Credits.');
+                    return;
+                }
+
+                this.showLoading(true);
+
+                const formData = new FormData();
+                formData.append('document', file);
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${this.token}` },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.showAnalysisResult(data.analysis);
+                        this.user.credits = data.creditsRemaining;
+                        this.updateUserInfo();
+                        this.showSuccess(data.message);
+                        this.resetUploadArea();
+                        this.loadDocumentHistory();
+                    } else {
+                        this.showError(data.error);
+                    }
+                } catch (error) {
+                    this.showError('Analyse fehlgeschlagen');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            showAnalysisResult(analysis) {
+                const resultsSection = document.getElementById('results-section');
+                const resultContainer = document.getElementById('analysis-result');
+                
+                resultContainer.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Immobilien-Adresse</h4>
+                                <p>${analysis.property_address || 'Nicht gefunden'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Eigentümer</h4>
+                                <p>${analysis.owner_name || 'Nicht gefunden'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Immobilientyp</h4>
+                                <p>${analysis.property_type || 'Nicht gefunden'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Preis</h4>
+                                <p>${analysis.price || 'Nicht gefunden'}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Dokumententyp</h4>
+                                <p>${analysis.document_type || 'PDF Dokument'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Wichtige Termine</h4>
+                                <div class="text-sm">
+                                    ${Array.isArray(analysis.key_dates) && analysis.key_dates.length > 0 
+                                        ? analysis.key_dates.map(date => `<p>• ${date}</p>`).join('') 
+                                        : '<p>Keine Termine gefunden</p>'
+                                    }
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <h4 class="font-semibold text-gray-700 mb-2">Zusammenfassung</h4>
+                                <p class="text-sm">${analysis.summary || 'Keine Zusammenfassung verfügbar'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ${analysis.important_clauses && analysis.important_clauses.length > 0 ? `
+                    <div class="mt-6 bg-yellow-50 p-4 rounded">
+                        <h4 class="font-semibold text-yellow-800 mb-2">Wichtige Klauseln</h4>
+                        <div class="text-sm text-yellow-700">
+                            ${analysis.important_clauses.map(clause => `<p>• ${clause}</p>`).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                
+                resultsSection.classList.remove('hidden');
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            async loadDocumentHistory() {
+                try {
+                    const response = await fetch('/api/documents', {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.displayDocumentHistory(data.documents);
+                    }
+                } catch (error) {
+                    console.error('Failed to load document history:', error);
+                }
+            }
+
+            displayDocumentHistory(documents) {
+                const historyContainer = document.getElementById('document-history');
+                
+                if (documents.length === 0) {
+                    historyContainer.innerHTML = '<p class="text-gray-500">Noch keine Dokumente analysiert</p>';
+                    return;
+                }
+
+                historyContainer.innerHTML = documents.map(doc => `
+                    <div class="border rounded-lg p-4 hover:bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold">${doc.original_name}</h4>
+                                <p class="text-sm text-gray-600">Analysiert am ${new Date(doc.created_at).toLocaleDateString('de-DE')}</p>
+                                <p class="text-sm text-gray-600">Adresse: ${doc.analysis_result.property_address || 'N/A'}</p>
+                            </div>
+                            <button onclick="app.showDocumentDetails(${doc.id})" class="text-blue-600 hover:text-blue-800 text-sm">Details</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async selectCreditOption(option) {
+                const credits = parseInt(option.dataset.credits);
+                const price = parseInt(option.dataset.price);
+                
+                // Highlight selected option
+                document.querySelectorAll('.credit-option').forEach(opt => opt.classList.remove('bg-blue-50', 'border-blue-400'));
+                option.classList.add('bg-blue-50', 'border-blue-400');
+
+                try {
+                    const response = await fetch('/api/create-payment-intent', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        },
+                        body: JSON.stringify({ amount: price, credits: credits })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.setupStripePayment(data.clientSecret, credits);
+                    } else {
+                        this.showError('Payment setup failed');
+                    }
+                } catch (error) {
+                    this.showError('Payment failed');
+                }
+            }
+
+            async setupStripePayment(clientSecret, credits) {
+                const elements = this.stripe.elements({ clientSecret });
+                const paymentElement = elements.create('payment');
+                
+                const paymentContainer = document.getElementById('payment-element');
+                paymentContainer.classList.remove('hidden');
+                paymentElement.mount('#payment-element');
+
+                const payButton = document.getElementById('pay-button');
+                payButton.classList.remove('hidden');
+                payButton.onclick = async () => {
+                    payButton.disabled = true;
+                    payButton.textContent = 'Verarbeitung...';
+
+                    const { error, paymentIntent } = await this.stripe.confirmPayment({
+                        elements,
+                        redirect: 'if_required'
+                    });
+
+                    if (error) {
+                        this.showError(error.message);
+                        payButton.disabled = false;
+                        payButton.textContent = 'Jetzt bezahlen';
+                    } else if (paymentIntent.status === 'succeeded') {
+                        await this.confirmPayment(paymentIntent.id, credits);
+                    }
+                };
+            }
+
+            async confirmPayment(paymentIntentId, credits) {
+                try {
+                    const response = await fetch('/api/confirm-payment', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        },
+                        body: JSON.stringify({ paymentIntentId, credits })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.user.credits += credits;
+                        this.updateUserInfo();
+                        this.hideCreditModal();
+                        this.showSuccess(data.message);
+                        
+                        // Reset payment form
+                        document.getElementById('payment-element').classList.add('hidden');
+                        document.getElementById('pay-button').classList.add('hidden');
+                        document.querySelectorAll('.credit-option').forEach(opt => opt.classList.remove('bg-blue-50', 'border-blue-400'));
+                    } else {
+                        this.showError(data.error);
+                    }
+                } catch (error) {
+                    this.showError('Payment confirmation failed');
+                }
+            }
+
+            resetUploadArea() {
+                document.getElementById('upload-area').innerHTML = `
+                    <div class="text-gray-600">
+                        <p class="text-lg mb-2">PDF hier ablegen oder klicken zum Auswählen</p>
+                        <p class="text-sm">Maximal 10MB pro Datei</p>
+                    </div>
+                `;
+                document.getElementById('analyze-btn').classList.add('hidden');
+                document.getElementById('file-input').value = '';
+            }
+
+            showLoading(show) {
+                const overlay = document.getElementById('loading-overlay');
+                if (show) {
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('flex');
+                } else {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                }
+            }
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            }
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            }
+
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                    type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                }`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            }
+        }
+
+        // Initialize app
+        const app = new PropTechApp();
+    </script>
+</body>
+</html>`;
+
+// Create public directory and index.html
+const path = require('path');
+const fs = require('fs');
+
+// Ensure public directory exists
+const publicDir = path.join(__dirname, 'public');
+if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir);
+}
+
+// Write the HTML file
+fs.writeFileSync(path.join(publicDir, 'index.html'), frontendHTML);
