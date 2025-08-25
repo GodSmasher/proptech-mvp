@@ -1,0 +1,10 @@
+# Node modules (falls du npm install machst)
+node_modules/
+
+#build output
+dist/
+build/
+
+# Environment files
+.env
+.env.*
